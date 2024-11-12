@@ -5,21 +5,28 @@ import json
 import os
 from flask import Flask, send_from_directory
 
+
 app = Flask(__name__)
+
 
 def get_distance(lat1, lon1, lat2, lon2):
     return distance.distance((lat1, lon1), (lat2, lon2)).km
 
+
 geolocator = Nominatim(user_agent="coffee_locator")
+
 
 def load_coffeeshops_from_file():
     with open("coffee.json", "r", encoding="CP1251") as file:
         return json.load(file)
 
+
+address = input("Введите адрес для поиска ближайших кофеен: ")
+
+
 @app.route('/')
 def home():
     coffeeshops = load_coffeeshops_from_file()
-    address = input("Введите адрес для поиска ближайших кофеен: ")
     
     location = geolocator.geocode(address)
     if location:
@@ -48,9 +55,11 @@ def home():
     print(f"http://127.0.0.1:5000/{map_file_path}")
     return f'Карта с ближайшими кофейнями доступна по <a href="/map.html">ссылке</a>.'
 
+
 @app.route('/map.html')
 def map_view():
     return send_from_directory(os.getcwd(), 'map.html')
 
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run
