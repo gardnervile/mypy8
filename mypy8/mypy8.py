@@ -24,19 +24,18 @@ def load_coffeeshops_from_file():
 address = input("Введите адрес для поиска ближайших кофеен: ")
 
 
-@app.route('/')
-def home():
+def generate_map():
     coffeeshops = load_coffeeshops_from_file()
-    
     location = geolocator.geocode(address)
-    if location:
-        user_lat = location.latitude
-        user_lon = location.longitude
+    user_lat, user_lon = location.latitude, location.longitude if location else (None, None)
+
+    if user_lat is None or user_lon is None:
+        return
 
     m = folium.Map(location=[user_lat, user_lon], zoom_start=12)
 
     coffeeshops_sorted = sorted(
-        coffeeshops, 
+        coffeeshops,
         key=lambda shop: get_distance(user_lat, user_lon, float(shop["Latitude_WGS84"]), float(shop["Longitude_WGS84"]))
     )
 
@@ -52,7 +51,15 @@ def home():
     m.save(map_file_path)
 
     abs_path = os.path.abspath(map_file_path)
-    print(f"http://127.0.0.1:5000/{map_file_path}")
+    print(f"Сервер запущен. Карта доступна по ссылке: http://127.0.0.1:5000/map.html")
+    return map_file_path
+
+
+map_file_path = generate_map()
+
+
+@app.route('/')
+def home():
     return f'Карта с ближайшими кофейнями доступна по <a href="/map.html">ссылке</a>.'
 
 
@@ -62,4 +69,4 @@ def map_view():
 
 
 if __name__ == "__main__":
-    app.run
+    app.run()
