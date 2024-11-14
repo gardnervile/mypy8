@@ -1,9 +1,9 @@
 import folium
-from geopy.geocoders import Nominatim
 from geopy import distance
 import json
 import os
 from flask import Flask, send_from_directory
+import requests
 
 
 app = Flask(__name__)
@@ -13,28 +13,39 @@ def get_distance(lat1, lon1, lat2, lon2):
     return distance.distance((lat1, lon1), (lat2, lon2)).km
 
 
-geolocator = Nominatim(user_agent="coffee_locator")
-
-
 def load_coffeeshops_from_file():
     with open("coffee.json", "r", encoding="CP1251") as file:
         return json.load(file)
 
 
-address = input("Введите адрес для поиска ближайших кофеен: ")
+def fetch_coordinates(apikey, address):
+    base_url = "https://geocode-maps.yandex.ru/1.x"
+    response = requests.get(base_url, params={
+        "geocode": address,
+        "apikey": apikey,
+        "format": "json",
+    })
+    response.raise_for_status()
+    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+
+    if not found_places:
+        return None
+
+    most_relevant = found_places[0]
+    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
+    return float(lat), float(lon)
 
 
 def generate_map():
+    apikey = '9162b928-ab54-49b8-96b2-002ea9f3db9d'
+    address = input("Введите адрес для поиска ближайших кофеен: ")
     coffeeshops = load_coffeeshops_from_file()
-    known_locations = {"метро арбатская": (55.7522, 37.6036)}
-    location = geolocator.geocode(f"{address}, Москва, Россия")
-    if location:
-        user_lat, user_lon = location.latitude, location.longitude
-    elif address.lower() in known_locations:
-        user_lat, user_lon = known_locations[address.lower()]
-    else:
+    coordinates = fetch_coordinates(apikey, f"{address}, Москва, Россия")
+
+    if not coordinates:
         return
-    
+
+    user_lat, user_lon = coordinates
     m = folium.Map(location=[user_lat, user_lon], zoom_start=12)
     coffeeshops_sorted = sorted(
         coffeeshops,
@@ -49,7 +60,7 @@ def generate_map():
     
     map_file_path = "map.html"
     m.save(map_file_path)
-    print(f"http://127.0.0.1:5000/map.html")
+    print("http://127.0.0.1:5000/map.html")
     return map_file_path
 
 
@@ -58,7 +69,7 @@ map_file_path = generate_map()
 
 @app.route('/')
 def home():
-    return '<a href="/map.html">ссылке</a>.'
+    return '<a href="/map.html">Открыть карту</a>.'
 
 
 @app.route('/map.html')
