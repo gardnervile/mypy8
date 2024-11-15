@@ -8,10 +8,6 @@ from dotenv import load_dotenv
 import logging
 
 
-load_dotenv()
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger()
-
 app = Flask(__name__)
 
 
@@ -30,7 +26,7 @@ def fetch_coordinates(address):
     response = requests.get(base_url, params={
         "geocode": address,
         "apikey": apikey,
-        "format": "json",
+        "format": "json"
     })
     response.raise_for_status()
     found_places = response.json()['response']['GeoObjectCollection']['featureMember']
@@ -55,7 +51,7 @@ def generate_map():
 
     user_lat, user_lon = coordinates
 
-    logger.info(f"Получены координаты пользователя: {user_lat}, {user_lon}")
+    logger.info(f"Координаты: {user_lat}, {user_lon}")
 
     m = folium.Map(location=[user_lat, user_lon], zoom_start=12)
     coffeeshops_sorted = sorted(
@@ -72,17 +68,11 @@ def generate_map():
     map_file_path = "map.html"
     m.save(map_file_path)
 
-    logger.info(f"Карта сохранена. Доступна по адресу: http://127.0.0.1:5000/map.html")
+    logger.info(f"Карта доступна по адресу: http://127.0.0.1:5000/map.html")
     return map_file_path
 
 
-def main():
-    map_file_path = generate_map()
-
-
-if __name__ == "__main__":
-    main()
-
+def setup_app_routes():
     @app.route('/')
     def home():
         return '<a href="/map.html">Открыть карту</a>.'
@@ -91,4 +81,17 @@ if __name__ == "__main__":
     def map_view():
         return send_from_directory(os.getcwd(), 'map.html')
 
+
+def main():
+    global logger
+    load_dotenv()
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger()
+
+    setup_app_routes()
+    generate_map()
     app.run()
+
+
+if __name__ == "__main__":
+    main()
