@@ -8,9 +8,6 @@ from dotenv import load_dotenv
 import logging
 
 
-app = Flask(__name__)
-
-
 def get_distance(lat1, lon1, lat2, lon2):
     return distance.distance((lat1, lon1), (lat2, lon2)).km
 
@@ -73,6 +70,8 @@ def generate_map():
 
 
 def setup_app_routes():
+    app = Flask(__name__)
+
     @app.route('/')
     def home():
         return '<a href="/map.html">Открыть карту</a>.'
@@ -81,6 +80,8 @@ def setup_app_routes():
     def map_view():
         return send_from_directory(os.getcwd(), 'map.html')
 
+    return app
+
 
 def main():
     global logger
@@ -88,7 +89,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logger = logging.getLogger()
 
-    setup_app_routes()
+    app = setup_app_routes()
     generate_map()
     app.run()
 
