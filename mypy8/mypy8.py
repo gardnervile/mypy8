@@ -4,10 +4,12 @@ import json
 import os
 from flask import Flask, send_from_directory
 import requests
+from dotenv import load_dotenv
 
+
+load_dotenv()
 
 app = Flask(__name__)
-
 
 def get_distance(lat1, lon1, lat2, lon2):
     return distance.distance((lat1, lon1), (lat2, lon2)).km
@@ -18,7 +20,8 @@ def load_coffeeshops_from_file():
         return json.load(file)
 
 
-def fetch_coordinates(apikey, address):
+def fetch_coordinates(address):
+    apikey = os.getenv("YANDEX_API_KEY")
     base_url = "https://geocode-maps.yandex.ru/1.x"
     response = requests.get(base_url, params={
         "geocode": address,
@@ -37,15 +40,16 @@ def fetch_coordinates(apikey, address):
 
 
 def generate_map():
-    apikey = '9162b928-ab54-49b8-96b2-002ea9f3db9d'
     address = input("Введите адрес для поиска ближайших кофеен: ")
     coffeeshops = load_coffeeshops_from_file()
-    coordinates = fetch_coordinates(apikey, f"{address}, Москва, Россия")
+
+    coordinates = fetch_coordinates(f"{address}, Москва, Россия")
 
     if not coordinates:
         return
 
     user_lat, user_lon = coordinates
+
     m = folium.Map(location=[user_lat, user_lon], zoom_start=12)
     coffeeshops_sorted = sorted(
         coffeeshops,
@@ -57,10 +61,10 @@ def generate_map():
             location=[float(shop["Latitude_WGS84"]), float(shop["Longitude_WGS84"])],
             popup=shop["Name"]
         ).add_to(m)
-    
+
     map_file_path = "map.html"
     m.save(map_file_path)
-    print("http://127.0.0.1:5000/map.html")
+    print("Карта доступна по адресу: http://127.0.0.1:5000/map.html")
     return map_file_path
 
 
