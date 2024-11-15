@@ -5,11 +5,15 @@ import os
 from flask import Flask, send_from_directory
 import requests
 from dotenv import load_dotenv
+import logging
 
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
 
 app = Flask(__name__)
+
 
 def get_distance(lat1, lon1, lat2, lon2):
     return distance.distance((lat1, lon1), (lat2, lon2)).km
@@ -46,9 +50,12 @@ def generate_map():
     coordinates = fetch_coordinates(f"{address}, Москва, Россия")
 
     if not coordinates:
+        logger.error(f"Не удалось найти координаты для адреса: {address}")
         return
 
     user_lat, user_lon = coordinates
+
+    logger.info(f"Получены координаты пользователя: {user_lat}, {user_lon}")
 
     m = folium.Map(location=[user_lat, user_lon], zoom_start=12)
     coffeeshops_sorted = sorted(
@@ -64,22 +71,24 @@ def generate_map():
 
     map_file_path = "map.html"
     m.save(map_file_path)
-    print("Карта доступна по адресу: http://127.0.0.1:5000/map.html")
+
+    logger.info(f"Карта сохранена. Доступна по адресу: http://127.0.0.1:5000/map.html")
     return map_file_path
 
 
-map_file_path = generate_map()
-
-
-@app.route('/')
-def home():
-    return '<a href="/map.html">Открыть карту</a>.'
-
-
-@app.route('/map.html')
-def map_view():
-    return send_from_directory(os.getcwd(), 'map.html')
+def main():
+    map_file_path = generate_map()
 
 
 if __name__ == "__main__":
+    main()
+
+    @app.route('/')
+    def home():
+        return '<a href="/map.html">Открыть карту</a>.'
+
+    @app.route('/map.html')
+    def map_view():
+        return send_from_directory(os.getcwd(), 'map.html')
+
     app.run()
